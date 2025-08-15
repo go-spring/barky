@@ -46,6 +46,9 @@ func TestStorage(t *testing.T) {
 
 		err = s.Set("", "abc", "store_test.go")
 		assert.ThatError(t, err).Matches("key is empty")
+
+		file := s.RawFile()
+		assert.ThatMap(t, file).Equal(map[string]int8{})
 	})
 
 	t.Run("map-0", func(t *testing.T) {
@@ -82,6 +85,11 @@ func TestStorage(t *testing.T) {
 		assert.That(t, s.Has("a")).True()
 		assert.That(t, s.RawData()).Equal(map[string]ValueInfo{
 			"a": {0, "c"},
+		})
+
+		file := s.RawFile()
+		assert.ThatMap(t, file).Equal(map[string]int8{
+			"store_test.go": 0,
 		})
 	})
 
@@ -141,6 +149,11 @@ func TestStorage(t *testing.T) {
 		subKeys, err = s.SubKeys("m")
 		assert.That(t, err).Nil()
 		assert.That(t, subKeys).Equal([]string{"t", "x"})
+
+		file := s.RawFile()
+		assert.ThatMap(t, file).Equal(map[string]int8{
+			"store_test.go": 0,
+		})
 	})
 
 	t.Run("arr-0", func(t *testing.T) {
@@ -179,6 +192,11 @@ func TestStorage(t *testing.T) {
 		subKeys, err = s.SubKeys("")
 		assert.That(t, err).Nil()
 		assert.That(t, subKeys).Equal([]string{"0", "1"})
+
+		file := s.RawFile()
+		assert.ThatMap(t, file).Equal(map[string]int8{
+			"store_test.go": 0,
+		})
 	})
 
 	t.Run("arr-1", func(t *testing.T) {
@@ -210,6 +228,11 @@ func TestStorage(t *testing.T) {
 		assert.ThatError(t, err).Matches("property conflict at path s")
 		err = s.Set("s.x", "f", "store_test.go")
 		assert.ThatError(t, err).Matches("property conflict at path s.x")
+
+		file := s.RawFile()
+		assert.ThatMap(t, file).Equal(map[string]int8{
+			"store_test.go": 0,
+		})
 	})
 
 	t.Run("map && array", func(t *testing.T) {
@@ -235,6 +258,11 @@ func TestStorage(t *testing.T) {
 		assert.That(t, s.RawData()).Equal(map[string]ValueInfo{
 			"a.b[0].c":    {0, "123"},
 			"a.b[0].d[0]": {0, "123"},
+		})
+
+		file := s.RawFile()
+		assert.ThatMap(t, file).Equal(map[string]int8{
+			"store_test.go": 0,
 		})
 	})
 }
