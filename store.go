@@ -81,6 +81,16 @@ func (s *Storage) RawData() map[string]ValueInfo {
 	return s.data
 }
 
+// AddFile adds a file to the storage and returns its ID.
+func (s *Storage) AddFile(file string) int8 {
+	idx, ok := s.file[file]
+	if !ok {
+		idx = int8(len(s.file))
+		s.file[file] = idx
+	}
+	return idx
+}
+
 // RawFile returns the raw file-to-ID map.
 func (s *Storage) RawFile() map[string]int8 {
 	return s.file
@@ -158,7 +168,7 @@ func (s *Storage) Has(key string) bool {
 // Set inserts a key-value pair into storage.
 // Builds/extends the tree structure as needed.
 // Returns an error if the key is empty or if a type conflict occurs.
-func (s *Storage) Set(key string, val string, file string) error {
+func (s *Storage) Set(key string, val string, file int8) error {
 	if key == "" {
 		return errors.New("key is empty")
 	}
@@ -197,12 +207,6 @@ func (s *Storage) Set(key string, val string, file string) error {
 		return fmt.Errorf("property conflict at path %s", key)
 	}
 
-	idx, ok := s.file[file]
-	if !ok {
-		idx = int8(len(s.file))
-		s.file[file] = idx
-	}
-
-	s.data[key] = ValueInfo{idx, val}
+	s.data[key] = ValueInfo{file, val}
 	return nil
 }

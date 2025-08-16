@@ -71,10 +71,11 @@ joined := barky.JoinPath(path)
 
 ```go
 s := barky.NewStorage()
+fileID := s.AddFile("config.yaml")
 
 // 写入配置
-s.Set("users[0].profile.name", "Alice", "config.yaml")
-s.Set("users[0].profile.age", "30", "config.yaml")
+s.Set("users[0].profile.name", "Alice", fileID)
+s.Set("users[0].profile.age", "30", fileID)
 
 // 检查路径是否存在
 exists := s.Has("users[0].profile.name")

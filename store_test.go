@@ -26,6 +26,7 @@ func TestStorage(t *testing.T) {
 
 	t.Run("empty", func(t *testing.T) {
 		s := NewStorage()
+		fileID := s.AddFile("store_test.go")
 		assert.That(t, s.RawData()).Equal(map[string]ValueInfo{})
 
 		subKeys, err := s.SubKeys("a")
@@ -44,26 +45,29 @@ func TestStorage(t *testing.T) {
 		assert.That(t, s.Has("a.b")).False()
 		assert.That(t, s.Has("a[0]")).False()
 
-		err = s.Set("", "abc", "store_test.go")
+		err = s.Set("", "abc", fileID)
 		assert.ThatError(t, err).Matches("key is empty")
 
 		file := s.RawFile()
-		assert.ThatMap(t, file).Equal(map[string]int8{})
+		assert.ThatMap(t, file).Equal(map[string]int8{
+			"store_test.go": 0,
+		})
 	})
 
 	t.Run("map-0", func(t *testing.T) {
 		s := NewStorage()
+		fileID := s.AddFile("store_test.go")
 
-		err := s.Set("a", "b", "store_test.go")
+		err := s.Set("a", "b", fileID)
 		assert.That(t, err).Nil()
 		assert.That(t, s.Has("a")).True()
 		assert.That(t, s.RawData()).Equal(map[string]ValueInfo{
 			"a": {0, "b"},
 		})
 
-		err = s.Set("a.y", "x", "store_test.go")
+		err = s.Set("a.y", "x", fileID)
 		assert.ThatError(t, err).Matches("property conflict at path a.y")
-		err = s.Set("a[0]", "x", "store_test.go")
+		err = s.Set("a[0]", "x", fileID)
 		assert.ThatError(t, err).Matches("property conflict at path a\\[0]")
 
 		assert.That(t, s.Has("")).False()
@@ -80,7 +84,7 @@ func TestStorage(t *testing.T) {
 		_, err = s.SubKeys("a[")
 		assert.ThatError(t, err).Matches("invalid key 'a\\['")
 
-		err = s.Set("a", "c", "store_test.go")
+		err = s.Set("a", "c", fileID)
 		assert.That(t, err).Nil()
 		assert.That(t, s.Has("a")).True()
 		assert.That(t, s.RawData()).Equal(map[string]ValueInfo{
@@ -95,8 +99,9 @@ func TestStorage(t *testing.T) {
 
 	t.Run("map-1", func(t *testing.T) {
 		s := NewStorage()
+		fileID := s.AddFile("store_test.go")
 
-		err := s.Set("m.x", "y", "store_test.go")
+		err := s.Set("m.x", "y", fileID)
 		assert.That(t, err).Nil()
 		assert.That(t, s.Has("m")).True()
 		assert.That(t, s.Has("m.x")).True()
@@ -110,11 +115,11 @@ func TestStorage(t *testing.T) {
 		assert.That(t, s.Has("m[0]")).False()
 		assert.That(t, s.Has("m.x[0]")).False()
 
-		err = s.Set("m", "a", "store_test.go")
+		err = s.Set("m", "a", fileID)
 		assert.ThatError(t, err).Matches("property conflict at path m")
-		err = s.Set("m.x.z", "w", "store_test.go")
+		err = s.Set("m.x.z", "w", fileID)
 		assert.ThatError(t, err).Matches("property conflict at path m")
-		err = s.Set("m[0]", "f", "store_test.go")
+		err = s.Set("m[0]", "f", fileID)
 		assert.ThatError(t, err).Matches("property conflict at path m\\[0]")
 
 		_, err = s.SubKeys("m.t")
@@ -128,7 +133,7 @@ func TestStorage(t *testing.T) {
 		_, err = s.SubKeys("m[0]")
 		assert.ThatError(t, err).Matches("property conflict at path m\\[0]")
 
-		err = s.Set("m.x", "z", "store_test.go")
+		err = s.Set("m.x", "z", fileID)
 		assert.That(t, err).Nil()
 		assert.That(t, s.Has("m")).True()
 		assert.That(t, s.Has("m.x")).True()
@@ -136,7 +141,7 @@ func TestStorage(t *testing.T) {
 			"m.x": {0, "z"},
 		})
 
-		err = s.Set("m.t", "q", "store_test.go")
+		err = s.Set("m.t", "q", fileID)
 		assert.That(t, err).Nil()
 		assert.That(t, s.Has("m")).True()
 		assert.That(t, s.Has("m.x")).True()
@@ -158,20 +163,21 @@ func TestStorage(t *testing.T) {
 
 	t.Run("arr-0", func(t *testing.T) {
 		s := NewStorage()
+		fileID := s.AddFile("store_test.go")
 
-		err := s.Set("[0]", "p", "store_test.go")
+		err := s.Set("[0]", "p", fileID)
 		assert.That(t, err).Nil()
 		assert.That(t, s.Has("[0]")).True()
 		assert.That(t, s.RawData()).Equal(map[string]ValueInfo{
 			"[0]": {0, "p"},
 		})
 
-		err = s.Set("[0]x", "f", "store_test.go")
+		err = s.Set("[0]x", "f", fileID)
 		assert.ThatError(t, err).Matches("invalid key '\\[0]x'")
-		err = s.Set("[0].x", "f", "store_test.go")
+		err = s.Set("[0].x", "f", fileID)
 		assert.ThatError(t, err).Matches("property conflict at path \\[0].x")
 
-		err = s.Set("[0]", "w", "store_test.go")
+		err = s.Set("[0]", "w", fileID)
 		assert.That(t, err).Nil()
 		assert.That(t, s.RawData()).Equal(map[string]ValueInfo{
 			"[0]": {0, "w"},
@@ -181,7 +187,7 @@ func TestStorage(t *testing.T) {
 		assert.That(t, err).Nil()
 		assert.That(t, subKeys).Equal([]string{"0"})
 
-		err = s.Set("[1]", "p", "store_test.go")
+		err = s.Set("[1]", "p", fileID)
 		assert.That(t, err).Nil()
 		assert.That(t, s.Has("[0]")).True()
 		assert.That(t, s.RawData()).Equal(map[string]ValueInfo{
@@ -201,8 +207,9 @@ func TestStorage(t *testing.T) {
 
 	t.Run("arr-1", func(t *testing.T) {
 		s := NewStorage()
+		fileID := s.AddFile("store_test.go")
 
-		err := s.Set("s[0]", "p", "store_test.go")
+		err := s.Set("s[0]", "p", fileID)
 		assert.That(t, err).Nil()
 		assert.That(t, s.Has("s")).True()
 		assert.That(t, s.Has("s[0]")).True()
@@ -210,7 +217,7 @@ func TestStorage(t *testing.T) {
 			"s[0]": {0, "p"},
 		})
 
-		err = s.Set("s[1]", "o", "store_test.go")
+		err = s.Set("s[1]", "o", fileID)
 		assert.That(t, err).Nil()
 		assert.That(t, s.Has("s")).True()
 		assert.That(t, s.Has("s[0]")).True()
@@ -224,9 +231,9 @@ func TestStorage(t *testing.T) {
 		assert.That(t, err).Nil()
 		assert.That(t, subKeys).Equal([]string{"0", "1"})
 
-		err = s.Set("s", "w", "store_test.go")
+		err = s.Set("s", "w", fileID)
 		assert.ThatError(t, err).Matches("property conflict at path s")
-		err = s.Set("s.x", "f", "store_test.go")
+		err = s.Set("s.x", "f", fileID)
 		assert.ThatError(t, err).Matches("property conflict at path s.x")
 
 		file := s.RawFile()
@@ -237,8 +244,9 @@ func TestStorage(t *testing.T) {
 
 	t.Run("map && array", func(t *testing.T) {
 		s := NewStorage()
+		fileID := s.AddFile("store_test.go")
 
-		err := s.Set("a.b[0].c", "123", "store_test.go")
+		err := s.Set("a.b[0].c", "123", fileID)
 		assert.That(t, err).Nil()
 		assert.That(t, s.Has("a")).True()
 		assert.That(t, s.Has("a.b")).True()
@@ -248,7 +256,7 @@ func TestStorage(t *testing.T) {
 			"a.b[0].c": {0, "123"},
 		})
 
-		err = s.Set("a.b[0].d[0]", "123", "store_test.go")
+		err = s.Set("a.b[0].d[0]", "123", fileID)
 		assert.That(t, err).Nil()
 		assert.That(t, s.Has("a")).True()
 		assert.That(t, s.Has("a.b")).True()

@@ -73,10 +73,11 @@ joined := barky.JoinPath(path)
 
 ```go
 s := barky.NewStorage()
+fileID := s.AddFile("config.yaml")
 
 // Insert values
-s.Set("users[0].profile.name", "Alice", "config.yaml")
-s.Set("users[0].profile.age", "30", "config.yaml")
+s.Set("users[0].profile.name", "Alice", fileID)
+s.Set("users[0].profile.age", "30", fileID)
 
 // Check existence
 exists := s.Has("users[0].profile.name")
