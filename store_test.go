@@ -80,7 +80,7 @@ func TestStorage(t *testing.T) {
 		assert.That(t, subKeys).Equal([]string{"a"})
 
 		_, err = s.SubKeys("a")
-		assert.ThatError(t, err).Matches("property path a not found")
+		assert.ThatError(t, err).Matches("property conflict at path a")
 		_, err = s.SubKeys("a[")
 		assert.ThatError(t, err).Matches("invalid key 'a\\['")
 
@@ -129,7 +129,7 @@ func TestStorage(t *testing.T) {
 		assert.That(t, subKeys).Equal([]string{"x"})
 
 		_, err = s.SubKeys("m.x")
-		assert.ThatError(t, err).Matches("property path m.x not found")
+		assert.ThatError(t, err).Matches("property conflict at path m.x")
 		_, err = s.SubKeys("m[0]")
 		assert.ThatError(t, err).Matches("property conflict at path m\\[0]")
 

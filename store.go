@@ -124,7 +124,7 @@ func (s *Storage) SubKeys(key string) (_ []string, err error) {
 	}
 
 	if n == nil {
-		return nil, fmt.Errorf("property path %s not found", key)
+		return nil, fmt.Errorf("property conflict at path %s", key)
 	}
 
 	keys := make([]string, 0, len(n.Data))
