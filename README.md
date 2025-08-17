@@ -17,8 +17,6 @@ such as JSON, YAML, and TOML.
 It can flatten nested data structures into a `map[string]string` while preserving path information, detecting conflicts,
 and tracking multi-file sources.
 
----
-
 ## ✨ Key Features
 
 ### 1. Flattening
@@ -46,15 +44,11 @@ and tracking multi-file sources.
     * `SubKeys`: List subkeys under a given path.
     * `Keys`: Get all stored keys in sorted order.
 
----
-
 ## 📦 Installation
 
 ```bash
 go get github.com/go-spring/barky
 ```
-
----
 
 ## 🛠 Usage Example
 
@@ -87,8 +81,6 @@ SubKeys of server.hosts: [0 1]
 Get server.hosts[0].ip: 192.168.0.1
 ```
 
----
-
 ## 📖 Use Cases
 
 * **Configuration Management**
@@ -104,15 +96,11 @@ Get server.hosts[0].ip: 192.168.0.1
 * **Data Transformation**
   Flatten hierarchical structures for easier processing in testing, diffing, or downstream systems.
 
----
-
 ## ⚠️ Notes
 
 * Paths must not contain **spaces**, **consecutive dots**, **unclosed brackets**, or other invalid formats.
 * Type conflicts in the tree structure (e.g., `"user.name"` vs `"user[0]"`) will return an error.
 * `RawData` and `RawFile` expose internal storage directly—use with caution.
-
----
 
 ## 📜 License
 
