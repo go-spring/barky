@@ -12,42 +12,39 @@
 
 [English](README.md) | [中文](README_CN.md)
 
-Barky 是一个 **层级化配置存储与路径解析工具库**，支持类似 JSON / YAML / TOML 的嵌套访问方式。
-
-通过 `Path` 结构体与 `Storage` 存储引擎，Barky 提供了 **类型安全** 的路径管理、子键查询、冲突检测等功能，方便在配置解析与管理中使用。
-
----
-
-## ✨ 功能特性
-
-* **路径解析与构建**
-
-    * `SplitPath`: 将字符串路径解析为结构化的 `Path` 数组
-    * `JoinPath`: 将 `Path` 数组还原为字符串路径
-
-* **两类路径类型**
-
-    * **Key**: 用于字典/对象访问（如 `"user.name"`)
-    * **Index**: 用于数组访问（如 `"[0]"`)
-
-* **层级化存储结构**
-
-    * 使用树结构（`treeNode`）维护路径层次，保证类型一致性
-    * 支持子键查询 (`SubKeys`)
-    * 支持路径存在性检测 (`Has`)
-    * 写入时自动构建路径，检测并阻止冲突 (`Set`)
-
-* **冲突检测**
-
-    * 当路径层级类型不一致时（例如某处既被当作对象又被当作数组），会抛出错误
-
-* **文件来源追踪**
-
-    * 每个键值对会记录其所属文件及文件 ID，方便多文件合并场景下定位来源
+`Barky` 是一个用于处理分层键值数据结构的 Go 工具包，主要面向配置文件（如 JSON、YAML、TOML）等场景。
+它可以将嵌套的数据结构展开成扁平化的 `map[string]string`，同时保留路径信息、冲突检测能力和多文件来源的追踪。
 
 ---
 
-## 📦 安装
+## ✨ 核心功能
+
+### 1. 扁平化（Flattening）
+
+- 支持将嵌套的 `map`、`slice`、`array` 转换为扁平化的 `map[string]string`。
+- 使用 **点号** 表示 map 键，使用 **中括号** 表示数组/切片索引。
+
+### 2. 路径处理（Path Handling）
+
+* `Path` 类型将层级键解析为一组 **路径段**（map 键或数组索引）。
+* 提供 `SplitPath` 将 `"foo.bar[0]"` 转换为结构化路径，`JoinPath` 将路径段重新拼接成字符串。
+* 支持语法校验，避免非法键（如连续的点号、未闭合的中括号）。
+
+### 3. 存储（Storage）
+
+* `Storage` 类型管理一组扁平化的键值对，同时在内部构建一棵树，用于检测结构冲突。
+* 每个值都带有来源文件索引（`file index`），方便在多文件合并时追踪来源。
+* 提供的方法包括：
+
+    * `Set`：设置键值，带冲突检测。
+    * `Get`：获取值，支持默认值。
+    * `Has`：判断键是否存在。
+    * `SubKeys`：列出某个路径下的子键。
+    * `Keys`：获取所有已存储的键（排序后）。
+
+---
+
+## 📦 安装方式
 
 ```bash
 go get github.com/go-spring/barky
@@ -57,37 +54,33 @@ go get github.com/go-spring/barky
 
 ## 🛠 使用示例
 
-### 路径解析与构建
-
 ```go
-path, _ := barky.SplitPath("users[0].profile.name")
-// path => [ {Key:"users"}, {Index:"0"}, {Key:"profile"}, {Key:"name"} ]
+package main
 
-joined := barky.JoinPath(path)
-// joined => "users[0].profile.name"
+import (
+	"fmt"
+	"github.com/go-spring/barky"
+)
+
+func main() {
+	s := barky.NewStorage()
+	fileIdx := s.AddFile("config.yaml")
+
+	_ = s.Set("server.hosts[0].ip", "192.168.0.1", fileIdx)
+	_ = s.Set("server.hosts[1].ip", "192.168.0.2", fileIdx)
+
+	fmt.Println("Keys:", s.Keys())
+	fmt.Println("SubKeys of server.hosts:", s.SubKeys("server.hosts"))
+	fmt.Println("Get server.hosts[0].ip:", s.Get("server.hosts[0].ip"))
+}
 ```
 
-### 存储与查询
+输出：
 
-```go
-s := barky.NewStorage()
-fileID := s.AddFile("config.yaml")
-
-// 写入配置
-s.Set("users[0].profile.name", "Alice", fileID)
-s.Set("users[0].profile.age", "30", fileID)
-
-// 检查路径是否存在
-exists := s.Has("users[0].profile.name")
-// true
-
-// 查询子键
-subs, _ := s.SubKeys("users[0].profile")
-// subs => ["age", "name"]
-
-// 查看底层存储
-raw := s.RawData()
-// map["users[0].profile.name"] => ValueInfo{File:0, Value:"Alice"}
+```
+Keys: [server.hosts[0].ip server.hosts[1].ip]
+SubKeys of server.hosts: [0 1]
+Get server.hosts[0].ip: 192.168.0.1
 ```
 
 ---
@@ -95,19 +88,16 @@ raw := s.RawData()
 ## 📖 使用场景
 
 * **配置管理**
+  将不同格式的配置文件转换成统一的扁平化键值对，便于比较和合并。
 
-    * 加载和合并多文件配置（YAML/JSON/TOML）
-    * 路径冲突检测，避免结构不一致
+* **查询与检索**
+  使用简单的路径字符串（如 `"server.hosts[0].ip"`）直接访问数据，而无需手动遍历嵌套结构。
 
-* **结构化数据访问**
+* **多文件合并**
+  同时处理多个配置文件，追踪每个键值来自哪个文件，并在冲突时提供检测。
 
-    * 以类型安全的方式访问嵌套结构
-    * 统一处理键/数组下标
-
-* **验证与调试**
-
-    * 检查配置文件路径是否存在
-    * 获取某路径下所有子键
+* **数据转换**
+  作为桥梁，将层级化数据结构转换为更易处理的键值形式，用于差异分析、测试或下游系统处理。
 
 ---
 

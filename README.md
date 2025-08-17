@@ -12,40 +12,39 @@
 
 [English](README.md) | [中文](README_CN.md)
 
-**Barky** is a lightweight library for **hierarchical configuration storage and path parsing**, inspired by
-JSON/YAML/TOML access patterns.
-
-It provides **type-safe path handling**, structured storage, subkey lookup, and conflict detection, making it ideal for
-managing nested configuration data.
+`Barky` is a Go package for managing hierarchical key-value data structures, mainly designed for configuration files
+such as JSON, YAML, and TOML.
+It can flatten nested data structures into a `map[string]string` while preserving path information, detecting conflicts,
+and tracking multi-file sources.
 
 ---
 
-## ✨ Features
+## ✨ Key Features
 
-* **Path Parsing & Construction**
+### 1. Flattening
 
-    * `SplitPath`: Parse a string path into structured `Path` segments
-    * `JoinPath`: Build a string path from structured segments
+* Supports converting nested `map`, `slice`, and `array` into a flat `map[string]string`.
+* Uses **dots** to denote map keys and **brackets** to denote array/slice indices.
 
-* **Two Path Types**
+### 2. Path Handling
 
-    * **Key**: For map/object access (e.g., `"user.name"`)
-    * **Index**: For array/list access (e.g., `"[0]"`)
+* The `Path` type parses hierarchical keys into a sequence of **path segments** (map keys or array indices).
+* Provides `SplitPath` to convert `"foo.bar[0]"` into structured path segments, and `JoinPath` to join path segments
+  back into a string.
+* Performs syntax validation to prevent invalid keys (e.g., consecutive dots, unclosed brackets).
 
-* **Hierarchical Storage**
+### 3. Storage
 
-    * Maintains a tree structure (`treeNode`) for type-safe paths
-    * Query subkeys with `SubKeys`
-    * Check if a path exists with `Has`
-    * Insert key-value pairs with automatic tree building and conflict detection via `Set`
+* The `Storage` type manages a set of flattened key-value pairs and builds an internal tree to detect structural
+  conflicts.
+* Each value is associated with a source file index, making it easy to track origins when merging multiple files.
+* Key methods include:
 
-* **Conflict Detection**
-
-    * Detects type mismatches (e.g., when a path segment is used both as a key and as an index)
-
-* **File Source Tracking**
-
-    * Each value is associated with its source file and a file ID, useful when merging multiple configs
+    * `Set`: Set a key-value pair with conflict detection.
+    * `Get`: Retrieve a value, optionally providing a default.
+    * `Has`: Check whether a key exists.
+    * `SubKeys`: List subkeys under a given path.
+    * `Keys`: Get all stored keys in sorted order.
 
 ---
 
@@ -57,39 +56,35 @@ go get github.com/go-spring/barky
 
 ---
 
-## 🛠 Usage Examples
-
-### Path Parsing & Building
+## 🛠 Usage Example
 
 ```go
-path, _ := barky.SplitPath("users[0].profile.name")
-// path => [ {Key:"users"}, {Index:"0"}, {Key:"profile"}, {Key:"name"} ]
+package main
 
-joined := barky.JoinPath(path)
-// joined => "users[0].profile.name"
+import (
+	"fmt"
+	"github.com/go-spring/barky"
+)
+
+func main() {
+	s := barky.NewStorage()
+	fileIdx := s.AddFile("config.yaml")
+
+	_ = s.Set("server.hosts[0].ip", "192.168.0.1", fileIdx)
+	_ = s.Set("server.hosts[1].ip", "192.168.0.2", fileIdx)
+
+	fmt.Println("Keys:", s.Keys())
+	fmt.Println("SubKeys of server.hosts:", s.SubKeys("server.hosts"))
+	fmt.Println("Get server.hosts[0].ip:", s.Get("server.hosts[0].ip"))
+}
 ```
 
-### Storage Operations
+Output:
 
-```go
-s := barky.NewStorage()
-fileID := s.AddFile("config.yaml")
-
-// Insert values
-s.Set("users[0].profile.name", "Alice", fileID)
-s.Set("users[0].profile.age", "30", fileID)
-
-// Check existence
-exists := s.Has("users[0].profile.name")
-// true
-
-// Get subkeys
-subs, _ := s.SubKeys("users[0].profile")
-// subs => ["age", "name"]
-
-// Inspect raw storage
-raw := s.RawData()
-// map["users[0].profile.name"] => ValueInfo{File:0, Value:"Alice"}
+```
+Keys: [server.hosts[0].ip server.hosts[1].ip]
+SubKeys of server.hosts: [0 1]
+Get server.hosts[0].ip: 192.168.0.1
 ```
 
 ---
@@ -97,27 +92,25 @@ raw := s.RawData()
 ## 📖 Use Cases
 
 * **Configuration Management**
+  Convert configuration files of various formats into a unified flat key-value map for easier comparison and merging.
 
-    * Load and merge multiple config files (YAML/JSON/TOML)
-    * Detect and prevent structural conflicts
+* **Querying & Retrieval**
+  Access nested data directly using simple path strings like `"server.hosts[0].ip"`, without manually traversing the
+  structure.
 
-* **Structured Data Access**
+* **Multi-File Merging**
+  Handle multiple configuration files at once, track the source of each key, and detect conflicts.
 
-    * Safely access nested values with clear key/index separation
-    * Unified path handling across maps and arrays
-
-* **Validation & Debugging**
-
-    * Check if a configuration path exists
-    * Retrieve all subkeys under a path
+* **Data Transformation**
+  Flatten hierarchical structures for easier processing in testing, diffing, or downstream systems.
 
 ---
 
 ## ⚠️ Notes
 
-* Invalid path formats (spaces, consecutive dots, unclosed brackets, etc.) will return an error
-* Structural conflicts (e.g., `"user.name"` vs `"user[0]"`) are detected and rejected
-* `RawData` and `RawFile` expose internal state directly — use with caution
+* Paths must not contain **spaces**, **consecutive dots**, **unclosed brackets**, or other invalid formats.
+* Type conflicts in the tree structure (e.g., `"user.name"` vs `"user[0]"`) will return an error.
+* `RawData` and `RawFile` expose internal storage directly—use with caution.
 
 ---
 

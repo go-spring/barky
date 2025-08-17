@@ -23,7 +23,8 @@ import (
 	"strings"
 )
 
-// PathType represents the type of a path segment.
+// PathType represents the type of a path element in a hierarchical key.
+// A path element can either be a key (map field) or an index (array/slice element).
 type PathType int8
 
 const (
@@ -31,15 +32,22 @@ const (
 	PathTypeIndex                 // A numeric index in a list.
 )
 
-// Path represents a segment of a hierarchical path.
-// Each segment is either a key (e.g., "user") or an index (e.g., "0").
+// Path represents a single segment in a parsed key path.
+// A path is composed of multiple Path elements that can be joined or split.
+// For example, "foo.bar[0]" would parse into: [{Key: "foo"}, {Key: "bar"}, {Index: "0"}].
 type Path struct {
-	Type PathType // Segment type (key or index).
-	Elem string   // Actual key or index value as a string.
+	// Whether the element is a key or an index.
+	Type PathType
+
+	// Actual key or index value as a string.
+	// For PathTypeKey, it's the key string;
+	// for PathTypeIndex, it's the index number as a string.
+	Elem string
 }
 
-// JoinPath constructs a string representation from a slice of Path segments.
-// Keys are joined with '.', and indices are represented as '[i]'.
+// JoinPath converts a slice of Path objects into a string representation.
+// Keys are joined with dots, and array indices are wrapped in square brackets.
+// Example: [key, index(0), key] => "key[0].key".
 func JoinPath(path []Path) string {
 	var sb strings.Builder
 	for i, p := range path {
@@ -58,10 +66,9 @@ func JoinPath(path []Path) string {
 	return sb.String()
 }
 
-// SplitPath parses a string path into a slice of Path segments.
-// It supports keys separated by '.' and indices enclosed in brackets (e.g., "users[0].name").
-// Returns an error for invalid path formats such as paths containing spaces,
-// consecutive dots, trailing dots, or malformed brackets.
+// SplitPath parses a string key path into a slice of Path objects.
+// It supports dot-notation for maps and bracket-notation for arrays.
+// Returns an error if the key is malformed (e.g., consecutive dots, unbalanced brackets).
 func SplitPath(key string) (_ []Path, err error) {
 	if key == "" {
 		return nil, fmt.Errorf("invalid key '%s'", key)
@@ -122,12 +129,14 @@ func SplitPath(key string) (_ []Path, err error) {
 	return path, nil
 }
 
-// appendKey appends a key segment to the path.
+// appendKey creates a new Path segment of type PathTypeKey and appends it
+// to the current path slice.
 func appendKey(path []Path, s string) []Path {
 	return append(path, Path{PathTypeKey, s})
 }
 
-// appendIndex appends an index segment to the path.
+// appendIndex creates a new Path segment of type PathTypeIndex and appends it
+// to the current path slice. It validates that the index is a valid integer.
 func appendIndex(path []Path, s string) ([]Path, error) {
 	_, err := strconv.ParseUint(s, 10, 64)
 	if err != nil {

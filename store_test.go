@@ -28,6 +28,7 @@ func TestStorage(t *testing.T) {
 		s := NewStorage()
 		fileID := s.AddFile("store_test.go")
 		assert.That(t, s.RawData()).Equal(map[string]ValueInfo{})
+		assert.That(t, s.Data()).Equal(map[string]string{})
 
 		subKeys, err := s.SubKeys("a")
 		assert.That(t, err).Nil()
@@ -52,6 +53,9 @@ func TestStorage(t *testing.T) {
 		assert.ThatMap(t, file).Equal(map[string]int8{
 			"store_test.go": 0,
 		})
+
+		keys := s.Keys()
+		assert.That(t, keys).Equal([]string{})
 	})
 
 	t.Run("map-0", func(t *testing.T) {
@@ -63,6 +67,9 @@ func TestStorage(t *testing.T) {
 		assert.That(t, s.Has("a")).True()
 		assert.That(t, s.RawData()).Equal(map[string]ValueInfo{
 			"a": {0, "b"},
+		})
+		assert.That(t, s.Data()).Equal(map[string]string{
+			"a": "b",
 		})
 
 		err = s.Set("a.y", "x", fileID)
@@ -95,6 +102,12 @@ func TestStorage(t *testing.T) {
 		assert.ThatMap(t, file).Equal(map[string]int8{
 			"store_test.go": 0,
 		})
+
+		val := s.Get("a")
+		assert.That(t, val).Equal("c")
+
+		keys := s.Keys()
+		assert.That(t, keys).Equal([]string{"a"})
 	})
 
 	t.Run("map-1", func(t *testing.T) {
@@ -107,6 +120,9 @@ func TestStorage(t *testing.T) {
 		assert.That(t, s.Has("m.x")).True()
 		assert.That(t, s.RawData()).Equal(map[string]ValueInfo{
 			"m.x": {0, "y"},
+		})
+		assert.That(t, s.Data()).Equal(map[string]string{
+			"m.x": "y",
 		})
 
 		assert.That(t, s.Has("")).False()
@@ -159,6 +175,12 @@ func TestStorage(t *testing.T) {
 		assert.ThatMap(t, file).Equal(map[string]int8{
 			"store_test.go": 0,
 		})
+
+		val := s.Get("m.x")
+		assert.That(t, val).Equal("z")
+
+		keys := s.Keys()
+		assert.That(t, keys).Equal([]string{"m.t", "m.x"})
 	})
 
 	t.Run("arr-0", func(t *testing.T) {
@@ -170,6 +192,9 @@ func TestStorage(t *testing.T) {
 		assert.That(t, s.Has("[0]")).True()
 		assert.That(t, s.RawData()).Equal(map[string]ValueInfo{
 			"[0]": {0, "p"},
+		})
+		assert.That(t, s.Data()).Equal(map[string]string{
+			"[0]": "p",
 		})
 
 		err = s.Set("[0]x", "f", fileID)
@@ -203,6 +228,12 @@ func TestStorage(t *testing.T) {
 		assert.ThatMap(t, file).Equal(map[string]int8{
 			"store_test.go": 0,
 		})
+
+		val := s.Get("[0]")
+		assert.That(t, val).Equal("w")
+
+		keys := s.Keys()
+		assert.That(t, keys).Equal([]string{"[0]", "[1]"})
 	})
 
 	t.Run("arr-1", func(t *testing.T) {
@@ -215,6 +246,9 @@ func TestStorage(t *testing.T) {
 		assert.That(t, s.Has("s[0]")).True()
 		assert.That(t, s.RawData()).Equal(map[string]ValueInfo{
 			"s[0]": {0, "p"},
+		})
+		assert.That(t, s.Data()).Equal(map[string]string{
+			"s[0]": "p",
 		})
 
 		err = s.Set("s[1]", "o", fileID)
@@ -240,6 +274,14 @@ func TestStorage(t *testing.T) {
 		assert.ThatMap(t, file).Equal(map[string]int8{
 			"store_test.go": 0,
 		})
+
+		val := s.Get("s.x.y", "default")
+		assert.That(t, val).Equal("default")
+
+		keys := s.Keys()
+		assert.That(t, keys).Equal([]string{
+			"s[0]", "s[1]",
+		})
 	})
 
 	t.Run("map && array", func(t *testing.T) {
@@ -254,6 +296,9 @@ func TestStorage(t *testing.T) {
 		assert.That(t, s.Has("a.b[0].c")).True()
 		assert.That(t, s.RawData()).Equal(map[string]ValueInfo{
 			"a.b[0].c": {0, "123"},
+		})
+		assert.That(t, s.Data()).Equal(map[string]string{
+			"a.b[0].c": "123",
 		})
 
 		err = s.Set("a.b[0].d[0]", "123", fileID)
@@ -271,6 +316,14 @@ func TestStorage(t *testing.T) {
 		file := s.RawFile()
 		assert.ThatMap(t, file).Equal(map[string]int8{
 			"store_test.go": 0,
+		})
+
+		val := s.Get("a.b[0].d[0]")
+		assert.That(t, val).Equal("123")
+
+		keys := s.Keys()
+		assert.That(t, keys).Equal([]string{
+			"a.b[0].c", "a.b[0].d[0]",
 		})
 	})
 }
